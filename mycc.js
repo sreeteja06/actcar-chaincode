@@ -4,7 +4,7 @@ class Chaincode {
     async Init(stub){
         let ret = stub.getFunctionAndParameters();
         console.info(ret);
-        console.info('=========== Instantiated Marbles Chaincode ===========');
+        console.info('=========== Instantiated ACTCAR Chaincode ===========');
         return shim.success();
     }
 
@@ -16,53 +16,53 @@ class Chaincode {
     console.info(ret);
 
     let method = this[ret.fcn];
-    if (!method) {
-      console.log('no function of name:' + ret.fcn + ' found');
-      throw new Error('Received unknown function ' + ret.fcn + ' invocation');
-    }
-    try {
+    try{
+      if (!method) {
+        console.log('no function of name:' + ret.fcn + ' found');
+        throw new Error('Received unknown function ' + ret.fcn + ' invocation');
+      }
       let payload = await method(stub, ret.params, this);
       return shim.success(payload);
     } catch (err) {
       console.log(err);
-      return shim.error(err);
+      return err;
     }
     }
-    manufacturers = {
-      "M001":{
-        "name": "toyoto",
-        "models": [
-          "TOmodel1", "TOmodel2", "TOmodel3", "TOmodel4"
-        ]
-      },
-      "M002":{
-        "name": "suzuki",
-        "models": [
-          "SUmodel1", "SUmodel2", "SUmodel3", "SUmodel4"            
-        ]
-      },
-      "M003":{
-        "name": "volkswagan",
-        "models": [
-          "VOmodel1", "VOmodel2", "VOmodel3", "VOmodel4"
-        ]
-      },
-      "M004":{
-        "name": "tesla",
-        "models": [
-          "TEmodel1", "TEmodel2", "TEmodel3", "TEmodel4"
-        ]
-      },
-      "M005":{
-        "name": "kia",
-        "models": [
-          "KImodel1", "KImodel2", "KImodel3", "KImodel4"
-        ]
-      }
-    }
-    manucarCount = 0;
 
     async initLedger(stub){
+      manufacturers = {
+        "M001":{
+          "name": "toyoto",
+          "models": [
+            "TOmodel1", "TOmodel2", "TOmodel3", "TOmodel4"
+          ]
+        },
+        "M002":{
+          "name": "suzuki",
+          "models": [
+            "SUmodel1", "SUmodel2", "SUmodel3", "SUmodel4"            
+          ]
+        },
+        "M003":{
+          "name": "volkswagan",
+          "models": [
+            "VOmodel1", "VOmodel2", "VOmodel3", "VOmodel4"
+          ]
+        },
+        "M004":{
+          "name": "tesla",
+          "models": [
+            "TEmodel1", "TEmodel2", "TEmodel3", "TEmodel4"
+          ]
+        },
+        "M005":{
+          "name": "kia",
+          "models": [
+            "KImodel1", "KImodel2", "KImodel3", "KImodel4"
+          ]
+        }
+      }
+      manucarCount = 0;
       for (const manuID in manufacturers) {
         await stub.putState( manuID, Buffer.from(JSON.stringify(manufacturers[manuID])) )
         await stub.putState( "carCount", Buffer.from(this.manucarCount))
@@ -80,9 +80,9 @@ class Chaincode {
     }
 
     async manufactureCar(stub, manuID, model, color){
-      if(this.manufacturers[manuID]["models"].indexOf(model)===-1){
-        throw new Error(`the selected model ${ model } doesnt exist in the current manufacturer`);
-      }
+      // if(this.manufacturers[manuID]["models"].indexOf(model)===-1){
+      //   throw new Error(`the selected model ${ model } doesnt exist in the current manufacturer`);
+      // }
       let carCountAsBytes = await stub.getState("carCount");
       let manufacturedByManu = await stub.getState("carsManufacturedBy"+manuID);
       if(manufacturedByManu.toString() === ''){
