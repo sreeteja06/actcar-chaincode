@@ -1,5 +1,7 @@
 const shim = require('fabric-shim');
 const util = require('util');
+
+//remove this lines after testing
 class Chaincode {
     async Init(stub){
         let ret = stub.getFunctionAndParameters();
@@ -24,13 +26,14 @@ class Chaincode {
       let payload = await method(stub, ret.params, this);
       return shim.success(payload);
     } catch (err) {
-      console.log(err);
+      // console.log(err);
+      // return shim.error(err);
       return err;
     }
     }
 
     async initLedger(stub){
-      manufacturers = {
+      let manufacturers = {
         "M001":{
           "name": "toyoto",
           "models": [
@@ -62,12 +65,13 @@ class Chaincode {
           ]
         }
       }
-      manucarCount = 0;
+      let manucarCount = 0;
       for (const manuID in manufacturers) {
         await stub.putState( manuID, Buffer.from(JSON.stringify(manufacturers[manuID])) )
-        await stub.putState( "carCount", Buffer.from(this.manucarCount))
-        console.info("added manufacutrer details" + manuID + JSON.stringify(manufacturers[manuID]))
+        await stub.putState("emptystring", Buffer.from(''));
+        // console.info("added manufacutrer details" + manuID + JSON.stringify(manufacturers[manuID]))
       }
+      await stub.putState( "carCount", Buffer.from(manucarCount.toString()))
     }
     
     async getManuDetails(stub, manuID){
@@ -75,7 +79,7 @@ class Chaincode {
         if (!manuAsBYtes || manuAsBYtes.length === 0) {
             throw new Error(`${manuID} does not exist`);
         }
-        console.log(manuAsBYtes.toString());
+        // console.log(manuAsBYtes.toString());
         return manuAsBYtes.toString();
     }
 
@@ -83,16 +87,23 @@ class Chaincode {
       // if(this.manufacturers[manuID]["models"].indexOf(model)===-1){
       //   throw new Error(`the selected model ${ model } doesnt exist in the current manufacturer`);
       // }
+      //remove this lines after testing
+      model = manuID[1];
+      color = manuID[2];
+      manuID = manuID[0];
+      //
       let carCountAsBytes = await stub.getState("carCount");
       let manufacturedByManu = await stub.getState("carsManufacturedBy"+manuID);
       if(manufacturedByManu.toString() === ''){
         manufacturedByManu = "[]"
       }
-      carCount = parseInt(carCountAsBytes.toString()) + 1
+      let carCount = parseInt(carCountAsBytes.toString()) + 1;
       manufacturedByManu = JSON.parse(manufacturedByManu.toString());
+      let manuAsBYtes = await stub.getState(manuID);
+      manuAsBYtes = JSON.parse(manuAsBYtes.toString());
       let car = {
         "carID": carCount.toString(),
-        "manu": this.manufacturers[manuID]["name"],
+        "manu": manuAsBYtes["name"],
         "model": model,
         "color": color,
         "owner": manuID,
@@ -102,12 +113,18 @@ class Chaincode {
       }
     
       await stub.putState(carCount.toString(), Buffer.from(JSON.stringify(car)))
+      await stub.putState("carCount", Buffer.from(carCount.toString()));
       manufacturedByManu.push(carCount.toString())
       await stub.putState("carsManufacturedBy"+manuID, Buffer.from(JSON.stringify(manufacturedByManu)))
       console.info("generated car with carID" + carCount.toString() + "and with details " + JSON.stringify(car))
     }
 
     async getManufactuerdCars(stub, manuID){
+
+      //remove this lines after testing
+      manuID = manuID[0]
+      //
+
       let manufactureCars = await stub.getState("carsManufacturedBy"+manuID);
       manufactureCars = manufactureCars.toString();
       console.info("manfactured by "+manuID + " are "+ manufactureCars);
@@ -115,27 +132,36 @@ class Chaincode {
     }
 
     async requestManufacturer(stub, dealerID, carID){
-      let carAsBytes = stub.getState(carID.toString());
+
+      //remove this lines after testing
+      carID = dealerID[1];
+      dealerID = dealerID[0];
+      //
+      let carAsBytes = await stub.getState(carID.toString());
       let car = JSON.parse(carAsBytes.toString());
       car["request"] = dealerID;
       const manuID = car["owner"];
       await stub.putState(carID.toString(), Buffer.from(JSON.stringify(car)));
       //add to cars requested to manufacturer
       let carsRequested = await stub.getState("requestedto"+manuID);
-      if(carsRequested.toString() === ''){
+      let emptystring = await stub.getState("emptystring");
+      if(carsRequested.toString() === emptystring.toString()){
         carsRequested = [];
+        carsRequested.push((carID));
       }
-      carsRequested = JSON.parse(carsRequested.toString());
-      carsRequested.push((carID));
+      else{
+        carsRequested = JSON.parse(carsRequested.toString());
+        carsRequested.push((carID));
+      }
       await stub.putState("requestedto"+manuID, Buffer.from(JSON.stringify(carsRequested)));
       //remove from cars manufactured,so that no new requests can be made to the same car
       let carsManufacturedBy = await stub.getState("carsManufacturedBy"+manuID);
-      if(carsManufacturedBy.toString() === ''){
+      if(carsManufacturedBy.toString() === emptystring.toString()){
         carsManufacturedBy = []
       }
-      carsManufacturedBy = JSON.parse(carsManufacturedBy);
+      carsManufacturedBy = JSON.parse(carsManufacturedBy.toString());
       for( var i = 0; i < carsManufacturedBy.length; i++){   //removing carID from carsmanufactureded by manufacturer
-        if ( carsManufacturedBy[i] === carID) {
+        if ( carsManufacturedBy[i] === carID.toString()) {
           carsManufacturedBy.splice(i, 1); 
         }
       }
@@ -201,9 +227,11 @@ class Chaincode {
     }
 
     async getCarDetails(stub, carID){
-      let carAsBytes = stub.getState(carID.toString());
-      let car = JSON.parse(carAsBytes.toString());
-      return car;
+      //remove this lines after testing
+      carID = carID[0];
+      //
+      let carAsBytes = await stub.getState(carID.toString());
+      return carAsBytes.toString();
     }
 
     async requestToBuyFromDealer(stub, customerID, carID){
