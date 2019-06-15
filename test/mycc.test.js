@@ -60,18 +60,148 @@ describe('test chaincode', async () => {
         let response = await mockStub.mockInvoke('tx1', [functionName]);
         functionName = "manufactureCar";
         response = await mockStub.mockInvoke('tx2', [functionName, "M001", "TOmodel1", "green"]);
+        response = await mockStub.mockInvoke('tx2', [functionName, "M001", "TOmodel1", "green"]);
         functionName = "getCarDetails";
         response = await mockStub.mockInvoke('tx3',[functionName, "1"]);
+        response = await mockStub.mockInvoke('tx3',[functionName, "2"]);
         functionName = "requestManufacturer";
         response = await mockStub.mockInvoke('tx4', [functionName, "D001", 1]);
+        response = await mockStub.mockInvoke('tx4', [functionName, "D001", 2]);
         functionName = "getManufactuerdCars";
         response = await mockStub.mockInvoke('tx5', [functionName, "M001"]);
-        console.warn("manufactured cars"+response.payload);
+        console.warn("manufactured cars"+response.payload.toString());
+        expect(response.payload.toString()).to.equal('[]');
         functionName = "getAllRequestedCars";
         response = await mockStub.mockInvoke('tx6', [functionName, "M001"]);
-        console.warn("all requested cars"+response.payload);
-
+        console.warn("all requested cars"+response.payload.toString());
+        expect(response.payload.toString()).to.equal('[1,2]');
     })
 
+    it("manufacturer accepts dealer request", async () =>{
+        let functionName = 'initLedger';
+        let response = await mockStub.mockInvoke('tx1', [functionName]);
+        functionName = "manufactureCar";
+        response = await mockStub.mockInvoke('tx2', [functionName, "M001", "TOmodel1", "green"]);
+        response = await mockStub.mockInvoke('tx2', [functionName, "M001", "TOmodel1", "green"]);
+        functionName = "getCarDetails";
+        response = await mockStub.mockInvoke('tx3',[functionName, "1"]);
+        response = await mockStub.mockInvoke('tx3',[functionName, "2"]);
+        functionName = "requestManufacturer";
+        response = await mockStub.mockInvoke('tx4', [functionName, "D001", 1]);
+        response = await mockStub.mockInvoke('tx4', [functionName, "D001", 2]);
+        functionName = "acceptDealerRequest";
+        response = await mockStub.mockInvoke('tx5', [functionName, "1"]);
+        functionName = "getAllRequestedCars";
+        response = await mockStub.mockInvoke('tx6', [functionName, "M001"]);
+        console.warn("all requested cars"+response.payload.toString());
+        expect(response.payload.toString()).to.equal('2');
+        functionName = "carsByDealers";
+        response = await mockStub.mockInvoke('tx7', [functionName, "D001"]);
+        console.warn("dealer cars"+response.payload.toString());
+        expect(response.payload.toString()).to.equal('1');
+    });
+
+    it("manufacturer denys dealer request", async () =>{
+        let functionName = 'initLedger';
+        let response = await mockStub.mockInvoke('tx1', [functionName]);
+        functionName = "manufactureCar";
+        response = await mockStub.mockInvoke('tx2', [functionName, "M001", "TOmodel1", "green"]);
+        response = await mockStub.mockInvoke('tx2', [functionName, "M001", "TOmodel1", "green"]);
+        functionName = "getCarDetails";
+        response = await mockStub.mockInvoke('tx3',[functionName, "1"]);
+        response = await mockStub.mockInvoke('tx3',[functionName, "2"]);
+        functionName = "requestManufacturer";
+        response = await mockStub.mockInvoke('tx4', [functionName, "D001", 1]);
+        response = await mockStub.mockInvoke('tx4', [functionName, "D001", 2]);
+        functionName = "denyDealerRequest";
+        response = await mockStub.mockInvoke('tx5', [functionName, "1"]);
+        functionName = "getAllRequestedCars";
+        response = await mockStub.mockInvoke('tx6', [functionName, "M001"]);
+        console.warn("all requested cars"+response.payload.toString());
+        expect(response.payload.toString()).to.equal('[2]');
+        functionName = "getManufactuerdCars";
+        response = await mockStub.mockInvoke('tx7', [functionName, "M001"]);
+        console.warn("manufactured cars"+response.payload.toString());
+        expect(response.payload.toString()).to.equal('["1"]');
+    });
+    it("request to buy from the dealer", async ()=>{
+        let functionName = 'initLedger';
+        let response = await mockStub.mockInvoke('tx1', [functionName]);
+        functionName = "manufactureCar";
+        response = await mockStub.mockInvoke('tx2', [functionName, "M001", "TOmodel1", "green"]);
+        response = await mockStub.mockInvoke('tx3', [functionName, "M001", "TOmodel1", "green"]);
+        functionName = "requestManufacturer";
+        response = await mockStub.mockInvoke('tx4', [functionName, "D001", 1]);
+        response = await mockStub.mockInvoke('tx5', [functionName, "D001", 2]);
+        functionName = "acceptDealerRequest";
+        response = await mockStub.mockInvoke('tx5', [functionName, "1"]);
+        response = await mockStub.mockInvoke('tx6', [functionName, "2"]);
+        functionName = "requestToBuyFromDealer"
+        response = await mockStub.mockInvoke('tx7', [functionName, "C001", 2]);
+        functionName = "carsByDealers";
+        response = await mockStub.mockInvoke('tx8', [functionName, "D001"]);
+        console.warn("dealer cars"+response.payload.toString());
+        expect(response.payload.toString()).to.equal('["1"]');
+        functionName = "requestsForDealer";
+        response = await mockStub.mockInvoke('tx9', [functionName, "D001"]);
+        console.warn("dealer requested cars"+response.payload.toString());
+        expect(response.payload.toString()).to.equal('[2]');
+    })
+
+    it('denies the customer request', async()=>{
+        let functionName = 'initLedger';
+        let response = await mockStub.mockInvoke('tx1', [functionName]);
+        functionName = "manufactureCar";
+        response = await mockStub.mockInvoke('tx2', [functionName, "M001", "TOmodel1", "green"]);
+        // response = await mockStub.mockInvoke('tx3', [functionName, "M001", "TOmodel1", "green"]);
+        functionName = "requestManufacturer";
+        response = await mockStub.mockInvoke('tx4', [functionName, "D001", 1]);
+        // response = await mockStub.mockInvoke('tx5', [functionName, "D001", 2]);
+        functionName = "acceptDealerRequest";
+        response = await mockStub.mockInvoke('tx5', [functionName, "1"]);
+        // response = await mockStub.mockInvoke('tx6', [functionName, "2"]);
+        functionName = "requestToBuyFromDealer"
+        response = await mockStub.mockInvoke('tx8', [functionName, "C001", 1]);        
+        // response = await mockStub.mockInvoke('tx7', [functionName, "C001", 2]);
+        functionName = "denyCustomerRequest";
+        response = await mockStub.mockInvoke('tx9', [functionName, 1]);
+        // response = await mockStub.mockInvoke('tx10', [functionName, 2]);
+        functionName = "carsByDealers";
+        response = await mockStub.mockInvoke('tx11', [functionName, "D001"]);
+        console.warn("dealer cars"+response.payload.toString());
+        expect(response.payload.toString()).to.equal('[1]');
+        functionName = "requestsForDealer";
+        response = await mockStub.mockInvoke('tx12', [functionName, "D001"]);
+        console.warn("dealer requested cars"+response.payload.toString());
+        expect(response.payload.toString()).to.equal('[]');
+    });
+
+    it('accept the customer request', async()=>{
+        let functionName = 'initLedger';
+        let response = await mockStub.mockInvoke('tx1', [functionName]);
+        functionName = "manufactureCar";
+        response = await mockStub.mockInvoke('tx2', [functionName, "M001", "TOmodel1", "green"]);
+        // response = await mockStub.mockInvoke('tx3', [functionName, "M001", "TOmodel1", "green"]);
+        functionName = "requestManufacturer";
+        response = await mockStub.mockInvoke('tx4', [functionName, "D001", 1]);
+        // response = await mockStub.mockInvoke('tx5', [functionName, "D001", 2]);
+        functionName = "acceptDealerRequest";
+        response = await mockStub.mockInvoke('tx5', [functionName, "1"]);
+        // response = await mockStub.mockInvoke('tx6', [functionName, "2"]);
+        functionName = "requestToBuyFromDealer"
+        response = await mockStub.mockInvoke('tx8', [functionName, "C001", 1]);        
+        // response = await mockStub.mockInvoke('tx7', [functionName, "C001", 2]);
+        functionName = "acceptCustomerRequest";
+        response = await mockStub.mockInvoke('tx9', [functionName, 1]);
+        // response = await mockStub.mockInvoke('tx10', [functionName, 2]);
+        functionName = "carsByCustomers";
+        response = await mockStub.mockInvoke('tx11', [functionName, "C001"]);
+        console.warn("dealer cars"+response.payload.toString());
+        expect(response.payload.toString()).to.equal('[1]');
+        functionName = "requestsForDealer";
+        response = await mockStub.mockInvoke('tx12', [functionName, "D001"]);
+        console.warn("dealer requested cars"+response.payload.toString());
+        expect(response.payload.toString()).to.equal('[]');
+    });
 
 })

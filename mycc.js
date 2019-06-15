@@ -174,56 +174,88 @@ class Chaincode {
     }
 
     async denyDealerRequest(stub, carID){
-      let carAsBytes = stub.getState(carID.toString());
+      //remove this lines after testing
+      carID = carID[0]
+      //
+      let carAsBytes = await stub.getState(carID.toString());
+      let emptystring = await stub.getState("emptystring");
       let car = JSON.parse(carAsBytes.toString());
       let manuID = car["owner"];
       car["request"] = '';
       await stub.putState(carID.toString(), Buffer.from(JSON.stringify(car)));
       //add the car back to the carsmanufactured list
       let manufacturedByManu = await stub.getState("carsManufacturedBy"+manuID);
-      if(manufacturedByManu.toString() === ''){
-        manufacturedByManu = "[]"
+      manufacturedByManu = manufacturedByManu.toString()
+      if(manufacturedByManu === emptystring.toString() || manufacturedByManu === '[]'){
+        manufacturedByManu = []
+        manufacturedByManu.push(carID);
       }
-      manufacturedByManu.push(carID);
+      else{
+        manufacturedByManu = JSON.parse(dealerCarsList.toString());
+        manufacturedByManu.push(carID);        
+      }
       await stub.putState("carsManufacturedBy"+manuID, Buffer.from(JSON.stringify(manufacturedByManu)));
       //remove the car from the requests list
-      let requestedList = await stub.getState("requestedTo"+manuID);
-      if(requestedList.toString() === ''){
+      let requestedList = await stub.getState("requestedto"+manuID);
+      if(requestedList.toString() === emptystring.toString() || requestedList === '[]'){
         requestedList = []
       }
-      requestedList = JSON.parse(requestedList);
+      requestedList = JSON.parse(requestedList.toString());
       for( var i = 0; i < requestedList.length; i++){     //removing carID from requested list to manufacturer
-         if ( requestedList[i] === carID) {
+        
+        if ( requestedList[i] === parseInt(carID)) {
            requestedList.splice(i, 1); 
          }
       }
-      await stub.putState("requestedTo"+manuID, requestedList);
+      await stub.putState("requestedto"+manuID, Buffer.from(JSON.stringify(requestedList)));
     }
 
-    async acceptDealerRequest(stub, carID){ 
-      let carAsBytes = stub.getState(carID.toString());
+    async acceptDealerRequest(stub, carID){
+      //remove this lines after testing
+      carID = carID[0];
+      //
+
+      let emptystring = await stub.getState("emptystring");
+      let carAsBytes = await stub.getState(carID.toString());
       let car = JSON.parse(carAsBytes.toString());
       let manuID = car["owner"]
       car["owner"] = car["request"];
       car["request"] = '';
-      let requestedList = await stub.getState("requestedTo"+manuID);
+      await stub.putState(carID.toString(), Buffer.from(JSON.stringify(car)));
+      let requestedList = await stub.getState("requestedto"+manuID);
       let dealerCarsList = await stub.getState("carsByDealers"+car["owner"]);
-      if(dealerCarsList.toString() === ''){
+      if(dealerCarsList.toString() === emptystring.toString() || dealerCarsList === '[]'){
         dealerCarsList = []
+        dealerCarsList.push(carID);
       }
-      if(requestedList.toString() === ''){
+      else{
+        dealerCarsList = JSON.parse(dealerCarsList.toString());
+        dealerCarsList.push(carID);        
+      }
+      if(requestedList.toString() === emptystring.toString() || requestedList === '[]'){
         requestedList = []
       }
-      dealerCarsList = JSON.parse(dealerCarsList);
-      dealerCarsList.push(carID);
-      requestedList = JSON.parse(requestedList);
+
+      requestedList = JSON.parse(requestedList.toString());
+      console.log(requestedList);
       for( var i = 0; i < requestedList.length; i++){     //removing carID from requested list to manufacturer
-         if ( requestedList[i] === carID) {
+        
+        if ( requestedList[i] === parseInt(carID)) {
            requestedList.splice(i, 1); 
          }
       }
-      await stub.putState("carsByDealers"+car["owner"], dealerCarsList);  //adding car to carsbydealers
-      await stub.putState("requestedTo"+manuID, requestedList);
+      console.log(requestedList);
+      await stub.putState("carsByDealers"+car["owner"], Buffer.from(JSON.stringify(dealerCarsList)));  //adding car to carsbydealers
+      await stub.putState("requestedto"+manuID, Buffer.from(JSON.stringify(requestedList)));
+    }
+
+    async carsByDealers(stub, dealerID){
+      //remove this lines after testing
+      dealerID = dealerID[0];
+      //
+
+      let dealerCars = await stub.getState("carsByDealers"+dealerID);
+      return dealerCars.toString();
     }
 
     async getCarDetails(stub, carID){
@@ -235,60 +267,156 @@ class Chaincode {
     }
 
     async requestToBuyFromDealer(stub, customerID, carID){
-      let carAsBytes = stub.getState(carID.toString());
+
+      //remove this lines after testing
+      carID = customerID[1];
+      customerID = customerID[0]
+      //
+      let emptystring = await stub.getState("emptystring");
+      let carAsBytes = await stub.getState(carID.toString());
       let car = JSON.parse(carAsBytes.toString());
       car["request"] = customerID;
       const dealerID = car["owner"];
       await stub.putState(carID.toString(), Buffer.from(JSON.stringify(car)));
       //add the car to the list of dealer requests
       let carsRequested = await stub.getState("requestedToDealers"+dealerID);
-      if(carsRequested.toString()===''){
+      if(carsRequested.toString()===emptystring.toString() || carsRequested.toString()==='[]'){
         carsRequested = []
+        carsRequested.push(carID);
       }
-      carsRequested = JSON.parse(carsRequested.toString())
-      carsRequested.push(carID);
+      else{
+        carsRequested = JSON.parse(carsRequested.toString())
+        carsRequested.push(carID);
+      }
       await stub.putState("requestedToDealers"+dealerID, Buffer.from(JSON.stringify(carsRequested)));
       //remove car from list of dealers available cars
       let dealerCarsList = await stub.getState("carsByDealers"+dealerID);
-      if(dealerCarsList.toString() === ''){
+      if(dealerCarsList.toString() === emptystring.toString() || dealerCarsList.toString()==='[]'){
         dealerCarsList = []
       }
       dealerCarsList = JSON.parse(dealerCarsList);
       for( var i = 0; i < dealerCarsList.length; i++){     //removing carID from dealers car list
-        if ( dealerCarsList[i] === carID) {
+        if ( dealerCarsList[i] === carID.toString()) {
           dealerCarsList.splice(i, 1); 
         }
       }
-      await stub.putState("carsByDealers"+dealerID, dealerCarsList)
+      await stub.putState("carsByDealers"+dealerID, Buffer.from(JSON.stringify(dealerCarsList)))
+    }
+
+    async requestsForDealer(stub, dealerID){
+      //remove this lines after testing
+      dealerID = dealerID[0]
+      //
+      let carsByDealers = await stub.getState("requestedToDealers"+dealerID);
+      return carsByDealers.toString();
     }
 
     async denyCustomerRequest(stub, carID){
-      let carAsBytes = stub.getState(carID.toString());
+      //remove this lines after testing
+      carID = carID[0];
+      //
+      let emptystring = await stub.getState("emptystring");
+      let carAsBytes = await stub.getState(carID.toString());
       let car = JSON.parse(carAsBytes.toString());
       let dealerID = car["owner"];
       car["request"] = '';
       await stub.putState(carID.toString(), Buffer.from(JSON.stringify(car)));
       //add the car back to the dealers list
       let dealerCarsList = await stub.getState("carsByDealers"+dealerID);
-      if(dealerCarsList.toString() === ''){
+      if(dealerCarsList.toString() === emptystring.toString() || dealerCarsList.toString() === '[]'){
         dealerCarsList = []
+        dealerCarsList.push(carID);
       }
-      dealerCarsList = JSON.parse(dealerCarsList);
-      dealerCarsList.push(carID);
-      await stub.putState("carsByDealers"+car["owner"], dealerCarsList);  //adding car to carsbydealers
+      else{
+        dealerCarsList = JSON.parse(dealerCarsList.toString());
+        console.log("dealers car list = "+dealerCarsList.toString());
+        dealerCarsList.push(carID);
+      }
+      await stub.putState("carsByDealers"+dealerID, Buffer.from(JSON.stringify(dealerCarsList)));  //adding car to carsbydealers
       //remove the car from the dealers request list
       let carsRequested = await stub.getState("requestedToDealers"+dealerID);
-      if(carsRequested.toString()===''){
+      if(carsRequested.toString()=== emptystring.toString() || carsRequested.toString() === '[]'){
         carsRequested = []
       }
       carsRequested = JSON.parse(carsRequested.toString())
       for( var i = 0; i < carsRequested.length; i++){
-        if ( carsRequested[i] === carID) {
+        if ( carsRequested[i] === parseInt(carID)) {
           carsRequested.splice(i, 1); 
         }
       }
       await stub.putState("requestedToDealers"+dealerID, Buffer.from(JSON.stringify(carsRequested)));
     }
+
+    async acceptCustomerRequest(stub, carID){
+      //remove this lines after testing
+      carID = carID[0];
+      //
+      let emptystring = await stub.getState("emptystring");
+      let carAsBytes = await stub.getState(carID.toString());
+      let car = JSON.parse(carAsBytes.toString());
+      let dealerID = car["owner"];
+      car["owner"] = car["request"];
+      car["request"] = '';
+      car['forSale'] = false;
+      let customerID = car["owner"];
+      await stub.putState(carID.toString(), Buffer.from(JSON.stringify(car)));
+      let customerCarsList = await stub.getState("carsByCustomer"+customerID);
+      if(customerCarsList.toString() === emptystring.toString() || customerCarsList.toString() === '[]'){
+        customerCarsList = []
+        customerCarsList.push(carID);
+      }
+      else{
+        customerCarsList = JSON.parse(customerCarsList.toString());
+        customerCarsList.push(carID);
+      }
+      console.log("customer cars = " + customerCarsList.toString());
+      await stub.putState("carsByCustomer"+customerID, Buffer.from(JSON.stringify(customerCarsList)));
+      let carsRequested = await stub.getState("requestedToDealers"+dealerID);
+      if(carsRequested.toString()=== emptystring.toString() || carsRequested.toString() === '[]'){
+        carsRequested = []
+      }
+      carsRequested = JSON.parse(carsRequested.toString())
+      for( var i = 0; i < carsRequested.length; i++){
+        if ( carsRequested[i] === parseInt(carID)) {
+          carsRequested.splice(i, 1);
+        }
+      }
+      await stub.putState("requestedToDealers"+dealerID, Buffer.from(JSON.stringify(carsRequested)));
+    }
+
+    async carsByCustomers(stub, customerID){
+      //remove this lines after testing
+      customerID = customerID[0]
+      //
+      let carsByCustomer = await stub.getState("carsByCustomer"+customerID);
+      return carsByCustomer.toString();
+    }
+    //forSale
+    // async sellTheCar(stub, carID){
+    //   //remove this lines after testing
+    //   carID = carID[0]
+    //   //
+    //   let emptystring = await stub.getState("emptystring");
+    //   let carAsBytes = await stub.getState(carID.toString());
+    //   let car = JSON.parse(carAsBytes.toString());
+    //   car["request"] = '';
+    //   car['forSale'] = true;
+    //   await stub.putState(carID.toString(), Buffer.from(JSON.stringify(car)));
+    //   let forSaleList = await stub.getState("forSale");
+    //   let data = {}
+    //   if(customerCarsList.toString() === emptystring.toString() || customerCarsList.toString() === '[]'){
+    //     customerCarsList = []
+        
+    //     customerCarsList.push(carID);
+    //   }
+    //   else{
+    //     customerCarsList = JSON.parse(customerCarsList.toString());
+    //     customerCarsList.push(carID);
+    //   }
+    //   console.log("customer cars = " + customerCarsList.toString());
+    //   await stub.putState("carsByCustomer"+customerID, Buffer.from(JSON.stringify(customerCarsList)));
+    // }
+
 } 
 
 module.exports = Chaincode
